@@ -378,6 +378,7 @@ def on_message_deleted(deleted_msg_id, chat_id, deleter_id, client):
         msg = message_store[deleted_msg_id]
         msg['deleted_at'] = datetime.now().isoformat()
         report = f"""
+report = f"""
 *🛑 GOJO X MD | تنبيه: تم حذف رسالة*
 
 *من الدردشة:* {msg['chat_name']} ({msg['chat_id']})
@@ -405,7 +406,7 @@ def on_message_edited(edited_msg_id, chat_id, new_text, editor_id, client):
         report = f"""
 *✏️ GOJO X MD | تنبيه: تم تعديل رسالة*
 
-*من الدردشة:* {old_msg['chat_name']} ({old_msg['chat_id'])}
+*من الدردشة:* {old_msg['chat_name']} ({old_msg['chat_id']})
 *المرسل الأصلي:* {old_msg['sender_name']} ({old_msg['sender_id'])}
 *وقت الإرسال:* {old_msg['timestamp']}
 *وقت التعديل:* {old_msg['edited_at']}
