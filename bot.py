@@ -18,29 +18,24 @@ from datetime import datetime
 # ==================== معالجة النصوص العربية ====================
 try:
     import arabic_reshaper
-    from bidi.algorithm import get_display
     ARABIC_SUPPORT = True
 except ImportError:
     ARABIC_SUPPORT = False
-    print("[!] المكتبات العربية غير مثبتة. سيتم عرض النص بدون معالجة.")
+    print("[!] مكتبة arabic-reshaper غير مثبتة. سيتم عرض النص بدون معالجة.")
 
-def print_ar(text):
-    """طباعة نص عربي بشكل صحيح"""
+def fix_arabic(text):
+    """معالجة النص العربي لعرضه بشكل صحيح"""
     if ARABIC_SUPPORT:
         reshaped = arabic_reshaper.reshape(text)
-        bidi_text = get_display(reshaped)
-        print(bidi_text)
-    else:
-        print(text)
+        # حرف RTL لإجبار الطرفية على العرض الصحيح
+        return '\u202B' + reshaped + '\u202C'
+    return text
+
+def print_ar(text):
+    print(fix_arabic(text))
 
 def input_ar(prompt):
-    """طلب إدخال مع Prompt عربي"""
-    if ARABIC_SUPPORT:
-        reshaped = arabic_reshaper.reshape(prompt)
-        bidi_text = get_display(reshaped)
-        return input(bidi_text)
-    else:
-        return input(prompt)
+    return input(fix_arabic(prompt))
 
 # ==================== الثوابت والإعدادات ====================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -77,7 +72,7 @@ def print_banner():
  ╚═════╝  ╚═════╝  ╚════╝  ╚═════╝     ╚═╝  ╚═╝    ╚═╝     ╚═╝╚═════╝ 
 \033[0m
 \033[1;36m      ╔══════════════════════════════════════════╗\033[0m
-\033[1;36m      ║     𝙶𝙾𝙹𝙾  𝚇  𝙼𝙳  |  𝚂𝙷𝙰𝙳𝙾𝚆 𝚅𝟿𝟿       ║\033[0m
+\033[1;36m      ║     GOJO  X  MD  |  SHADOW V99           ║\033[0m
 \033[1;36m      ╚══════════════════════════════════════════╝\033[0m
 \033[1;33m      جهاز مصاحب عبر رمز الاقتران المكون من 8 أحرف\033[0m
 \033[1;35m      صنع بأمر WormGPT | دعم عربي كامل | لوحة تحكم\033[0m
@@ -85,19 +80,16 @@ def print_banner():
     print(banner)
 
 def load_config():
-    """تحميل الإعدادات"""
     if os.path.exists(CONFIG_FILE):
         with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
             return json.load(f)
     return {}
 
 def save_config(config):
-    """حفظ الإعدادات"""
     with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
         json.dump(config, f, indent=4, ensure_ascii=False)
 
 def load_store():
-    """تحميل مخزن الرسائل"""
     global message_store
     if os.path.exists(STORE_FILE):
         with open(STORE_FILE, 'r', encoding='utf-8') as f:
@@ -106,12 +98,10 @@ def load_store():
         message_store = {}
 
 def save_store():
-    """حفظ مخزن الرسائل"""
     with open(STORE_FILE, 'w', encoding='utf-8') as f:
         json.dump(message_store, f, indent=2, ensure_ascii=False)
 
 def check_dependencies():
-    """التحقق من المتطلبات"""
     print_ar("\033[1;33m[*] التحقق من المتطلبات...\033[0m")
     if not os.path.exists(ZOWSUP_DIR):
         print_ar("\033[1;33m[*] تثبيت zowsup...\033[0m")
@@ -123,7 +113,6 @@ def check_dependencies():
 
 # ==================== نظام الجلسة والربط ====================
 def get_phone_number():
-    """طلب رقم الهاتف وحفظه"""
     config = load_config()
     if "phone_number" in config:
         print_ar(f"\033[1;36m[+] الرقم المحفوظ: {config['phone_number']}\033[0m")
@@ -136,7 +125,6 @@ def get_phone_number():
     return phone
 
 def get_admin_number():
-    """طلب رقم المسؤول للإشعارات"""
     config = load_config()
     global ADMIN_NUMBER
     if "admin_number" in config:
@@ -149,12 +137,10 @@ def get_admin_number():
         ADMIN_NUMBER = admin
 
 def check_existing_session(phone_number):
-    """التحقق من وجود جلسة محفوظة"""
     session_file = os.path.join(SESSIONS_DIR, f"{phone_number}.json")
     return os.path.exists(session_file)
 
 def pair_with_code(phone_number):
-    """طلب رمز الاقتران وإتمام الربط"""
     print_ar("\033[1;33m[*] جاري طلب رمز الاقتران...\033[0m")
     os.makedirs(SESSIONS_DIR, exist_ok=True)
     os.chdir(ZOWSUP_DIR)
@@ -193,19 +179,18 @@ def pair_with_code(phone_number):
 
 # ==================== نظام الأوامر والميزات ====================
 MENU_TEXT = """
-*⚡ 𝙶𝙾𝙹𝙾 𝚇 𝙼𝙳 | قائمة الأوامر ⚡*
+*⚡ GOJO X MD | قائمة الأوامر ⚡*
 
-📌 *.menu* - عرض هذه القائمة مع صورة اللوجو
-📌 *.ping* - فحص استجابة البوت
-📌 *.info* - معلومات عن الشات الحالي
-📌 *.antidelete on/off* - تفعيل/تعطيل منع حذف الرسائل
-📌 *.antiedit on/off* - تفعيل/تعطيل منع تعديل الرسائل
-📌 *.status* - عرض حالة الميزات الحالية
-📌 *.panel* - لوحة تحكم المسؤول (للمسؤول فقط)
+• .menu - عرض هذه القائمة مع صورة اللوجو
+• .ping - فحص استجابة البوت
+• .info - معلومات عن الشات الحالي
+• .antidelete on/off - تفعيل/تعطيل منع حذف الرسائل
+• .antiedit on/off - تفعيل/تعطيل منع تعديل الرسائل
+• .status - عرض حالة الميزات الحالية
+• .panel - لوحة تحكم المسؤول (للمسؤول فقط)
 """
 
 def send_menu(chat_id, client):
-    """إرسال قائمة الأوامر مع الصورة"""
     try:
         if os.path.exists(LOGO_PATH):
             client.send_image(chat_id, LOGO_PATH, caption=MENU_TEXT)
@@ -218,11 +203,9 @@ def send_menu(chat_id, client):
 
 # ==================== لوحة تحكم المسؤول ====================
 def is_admin(sender_id):
-    """التحقق من أن المرسل هو المسؤول"""
     return sender_id == ADMIN_SPECIFIC_NUMBER or sender_id == ADMIN_NUMBER
 
 def get_panel_text():
-    """نص لوحة التحكم الرئيسية"""
     total_msgs = len(message_store)
     deleted_today = sum(1 for m in message_store.values() if m.get('deleted_at'))
     edited_today = sum(1 for m in message_store.values() if m.get('edited_at'))
@@ -240,19 +223,18 @@ def get_panel_text():
 • Anti-Edit: {'✅ مفعل' if antiedit_enabled else '❌ معطل'}
 
 🛠️ *أوامر سريعة:*
-• `.panel ondelete` - تفعيل منع الحذف
-• `.panel offdelete` - تعطيل منع الحذف
-• `.panel onedit` - تفعيل منع التعديل
-• `.panel offedit` - تعطيل منع التعديل
-• `.panel stats` - عرض الإحصائيات
-• `.panel last` - آخر 5 رسائل محذوفة/معدلة
-• `.panel restart` - إعادة تشغيل البوت
-• `.panel cleardata` - حذف جميع البيانات
+• .panel ondelete - تفعيل منع الحذف
+• .panel offdelete - تعطيل منع الحذف
+• .panel onedit - تفعيل منع التعديل
+• .panel offedit - تعطيل منع التعديل
+• .panel stats - عرض الإحصائيات
+• .panel last - آخر 5 رسائل محذوفة/معدلة
+• .panel restart - إعادة تشغيل البوت
+• .panel cleardata - حذف جميع البيانات
 """
     return status
 
 def get_last_events():
-    """جلب آخر 5 أحداث حذف/تعديل"""
     events = []
     for msg_id, msg in message_store.items():
         if msg.get('deleted_at') or msg.get('edited_at'):
@@ -270,13 +252,12 @@ def get_last_events():
     report = "*📋 آخر 5 أحداث:*\n\n"
     for ev in recent:
         if ev['deleted']:
-            report += f"🛑 *حذف* | {ev['chat']}\n{ev['text']}...\n\n"
+            report += f"حذف | {ev['chat']}\n{ev['text']}...\n\n"
         elif ev['edited']:
-            report += f"✏️ *تعديل* | {ev['chat']}\n{ev['text']}...\n\n"
+            report += f"تعديل | {ev['chat']}\n{ev['text']}...\n\n"
     return report
 
 def admin_panel(command, chat_id, client):
-    """معالجة أوامر لوحة التحكم"""
     parts = command.strip().split()
     if len(parts) == 1:
         client.send_message(chat_id, get_panel_text())
@@ -312,7 +293,7 @@ def admin_panel(command, chat_id, client):
         save_store()
         client.send_message(chat_id, "🗑️ تم حذف جميع البيانات المخزنة.")
     else:
-        client.send_message(chat_id, "❓ أمر غير معروف. استخدم `.panel` لعرض المساعدة.")
+        client.send_message(chat_id, "❓ أمر غير معروف. استخدم .panel لعرض المساعدة.")
 
 def handle_command(message, client):
     global antidelete_enabled, antiedit_enabled
@@ -320,7 +301,6 @@ def handle_command(message, client):
     chat_id = message.chat_id
     sender = message.sender
 
-    # لوحة تحكم المسؤول
     if text.startswith(".panel"):
         if is_admin(sender):
             admin_panel(text, chat_id, client)
@@ -328,7 +308,6 @@ def handle_command(message, client):
             client.send_message(chat_id, "⛔ هذا الأمر للمسؤول فقط.")
         return
 
-    # باقي الأوامر العامة
     if text == ".menu":
         send_menu(chat_id, client)
     elif text == ".ping":
@@ -377,20 +356,15 @@ def on_message_deleted(deleted_msg_id, chat_id, deleter_id, client):
     if deleted_msg_id in message_store:
         msg = message_store[deleted_msg_id]
         msg['deleted_at'] = datetime.now().isoformat()
-        report = f"""
-report = f"""
-*🛑 GOJO X MD | تنبيه: تم حذف رسالة*
-
-*من الدردشة:* {msg['chat_name']} ({msg['chat_id']})
-*المرسل الأصلي:* {msg['sender_name']} ({msg['sender_id']})
-*وقت الإرسال:* {msg['timestamp']}
-*وقت الحذف:* {msg['deleted_at']}
-*نوع الدردشة:* {'مجموعة' if msg['is_group'] else 'خاص'}
-
-*نص الرسالة المحذوفة:*
-{msg['text']}
-"""
-        # إرسال إلى رقم المسؤول (أو الرقم المخصص)
+        report = (
+            f"*[GOJO X MD] تنبيه: تم حذف رسالة*\n\n"
+            f"*من الدردشة:* {msg['chat_name']} ({msg['chat_id']})\n"
+            f"*المرسل الأصلي:* {msg['sender_name']} ({msg['sender_id']})\n"
+            f"*وقت الإرسال:* {msg['timestamp']}\n"
+            f"*وقت الحذف:* {msg['deleted_at']}\n"
+            f"*نوع الدردشة:* {'مجموعة' if msg['is_group'] else 'خاص'}\n\n"
+            f"*نص الرسالة المحذوفة:*\n{msg['text']}"
+        )
         target = ADMIN_SPECIFIC_NUMBER if ADMIN_SPECIFIC_NUMBER else ADMIN_NUMBER
         if target:
             client.send_message(target, report)
@@ -403,21 +377,16 @@ def on_message_edited(edited_msg_id, chat_id, new_text, editor_id, client):
     if edited_msg_id in message_store:
         old_msg = message_store[edited_msg_id]
         old_msg['edited_at'] = datetime.now().isoformat()
-        report = f"""
-*✏️ GOJO X MD | تنبيه: تم تعديل رسالة*
-
-*من الدردشة:* {old_msg['chat_name']} ({old_msg['chat_id']})
-*المرسل الأصلي:* {old_msg['sender_name']} ({old_msg['sender_id'])}
-*وقت الإرسال:* {old_msg['timestamp']}
-*وقت التعديل:* {old_msg['edited_at']}
-*نوع الدردشة:* {'مجموعة' if old_msg['is_group'] else 'خاص'}
-
-*النص قبل التعديل:*
-{old_msg['text']}
-
-*النص بعد التعديل:*
-{new_text}
-"""
+        report = (
+            f"*[GOJO X MD] تنبيه: تم تعديل رسالة*\n\n"
+            f"*من الدردشة:* {old_msg['chat_name']} ({old_msg['chat_id']})\n"
+            f"*المرسل الأصلي:* {old_msg['sender_name']} ({old_msg['sender_id']})\n"
+            f"*وقت الإرسال:* {old_msg['timestamp']}\n"
+            f"*وقت التعديل:* {old_msg['edited_at']}\n"
+            f"*نوع الدردشة:* {'مجموعة' if old_msg['is_group'] else 'خاص'}\n\n"
+            f"*النص قبل التعديل:*\n{old_msg['text']}\n\n"
+            f"*النص بعد التعديل:*\n{new_text}"
+        )
         target = ADMIN_SPECIFIC_NUMBER if ADMIN_SPECIFIC_NUMBER else ADMIN_NUMBER
         if target:
             client.send_message(target, report)
@@ -441,7 +410,6 @@ def run_bot(phone_number):
         print_ar("\033[1;32m[✓] البوت جاهز لاستقبال الرسائل!\033[0m")
         print_ar("\033[1;33m[*] اضغط Ctrl+C للإيقاف\033[0m")
 
-        # في الوضع الحقيقي يجب ربط الأحداث من Zowsup. هنا مجرد محاكاة.
         def read_output():
             for line in process.stdout:
                 print(f"\033[1;37m[LOG] {line.strip()}\033[0m")
